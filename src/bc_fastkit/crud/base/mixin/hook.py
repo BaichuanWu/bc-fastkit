@@ -2,9 +2,9 @@ from typing import Any, Generic
 
 from sqlalchemy.orm import Query, Session
 
-from ....common import QUERY_TYPE_SIMPLE
+from ....common.query import QUERY_TYPE_SIMPLE
 from ....common.typing import D
-from ...core import ModelType
+from ...core.typing import ModelType
 
 
 class CRUDHookMixin(Generic[ModelType]):

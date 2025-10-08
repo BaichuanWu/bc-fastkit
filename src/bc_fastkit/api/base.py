@@ -3,8 +3,7 @@ from typing import Any, TypeVar
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from ..common import QUERY_TYPE_OVERALL
-from ..common.query import CommonQueryParams
+from ..common.query import QUERY_TYPE_OVERALL, CommonQueryParams
 from ..crud import CRUDBase
 from ..schema import BaseSchema, CRUSchema, QueryResponseSchema
 

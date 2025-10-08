@@ -7,7 +7,7 @@ from typing import Annotated, Any, Container, Dict, List, Optional, Tuple, Type,
 from humps import camel
 from pydantic import BaseModel, ConfigDict, PlainSerializer, create_model
 
-from ..common import DATE_FORMAT, DATETIME_FORMAT
+from ..common.typing import DATE_FORMAT, DATETIME_FORMAT
 from ..model import get_column_python_type
 
 IGNORE_SUFFIX = " 00:00:00"

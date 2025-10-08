@@ -2,8 +2,13 @@ import json
 from datetime import datetime
 from typing import List, Optional
 
-from . import QUERY_TYPE_SIMPLE
 from .uitls import deep_hump2underline, deep_underline2hump
+
+QUERY_TYPE_SIMPLE = 0
+QUERY_TYPE_OVERALL = 1
+QUERY_TYPE_WORKBENCH = 2
+QUERY_TYPE_AGGREGATION = 4
+QUERY_TYPE_PRINT = 5
 
 
 class CommonQueryParams:
