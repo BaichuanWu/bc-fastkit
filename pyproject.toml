@@ -1,0 +1,33 @@
+[project]
+name = "bc-fastkit"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "alian",email = "salivawbc@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.117.1,<0.118.0)",
+    "sqlalchemy[asyncio] (>=2.0.43,<3.0.0)",
+    "aiomysql (>=0.2.0,<0.3.0)",
+    "pydantic-settings (>=2.11.0,<3.0.0)",
+    "humps (>=0.2.2,<0.3.0)",
+]
+
+[tool.poetry]
+packages = [{include = "bc_fastkit", from = "src"}]
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.3.0"
+isort = "^6.1.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "primary"

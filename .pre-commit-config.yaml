@@ -1,0 +1,41 @@
+repos:
+  # 1. Black - 自动格式化 Python 代码
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        language_version: python3.12
+
+  # 2. isort - 自动排序 import
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]  # 与 Black 排版兼容
+
+
+  # 3. Ruff - 检查和部分自动修复代码问题
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.14.0
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        args: [ --fix ]
+      # Run the formatter.
+      # - id: ruff-format
+  # 4. Flake8 - 仅检查，不自动修改
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ["--ignore=E203,W503", "--max-line-length=120"]
+        exclude: __init__.py|db_sync/
+
+
+  # 5. 清理尾随空格 & 确保文件末尾换行
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
