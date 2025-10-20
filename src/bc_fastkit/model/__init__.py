@@ -34,7 +34,7 @@ def to_camel(string: str) -> str:
 class BaseModel:
     FAKE_DELETE_UK_SUFFIX = "_DELETED_"
 
-    id = NotNullColumn(INTEGER(unsigned=True), primary_key=True)
+    id: Mapped[int] = NotNullColumn(INTEGER(unsigned=True), primary_key=True)
     create_time = NotNullColumn(
         DateTime,
         server_default=text(str(func.current_timestamp())),
@@ -98,7 +98,7 @@ class BaseModel:
 
     @declared_attr
     def is_real_delete(cls):
-        return False
+        return True
 
     @declared_attr
     def is_fake_delete(cls):

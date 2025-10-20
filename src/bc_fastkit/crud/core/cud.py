@@ -1,6 +1,7 @@
 from typing import Any, List, Type
 
 from sqlalchemy import UniqueConstraint
+from sqlalchemy.dialects.mysql import insert as dialect_insert
 from sqlalchemy.orm import Session
 
 from ...common.typing import D
@@ -19,6 +20,27 @@ def db_create(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType:
         db.rollback()
         raise e
     return db_obj
+
+
+def db_create_or_update(db: Session, *, obj_in: D, model: Type[ModelType]):
+    if db.bind.dialect.name == "mysql":  # type: ignore
+        try:
+            db_obj = model(
+                **{
+                    k: v
+                    for k, v in obj_in.items()
+                    if k in model.createalbe_column_names
+                }
+            )
+            values = db_obj.to_dict()
+            stmt = dialect_insert(model).values(**values)
+            stmt = stmt.on_duplicate_key_update(**values)
+            db.execute(stmt)
+        except Exception as e:
+            db.rollback()
+            raise e
+    else:
+        db_create(db, obj_in=obj_in, model=model)
 
 
 def db_update(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType | None:

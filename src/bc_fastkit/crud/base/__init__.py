@@ -8,7 +8,14 @@ from sqlalchemy.orm import Query, Session
 from ...common.query import QUERY_TYPE_OVERALL, QUERY_TYPE_SIMPLE
 from ...common.typing import DATE_FORMAT, DATETIME_FORMAT, D, date_re, datetime_re
 from ...model import BaseModel
-from ..core.cud import ModelType, db_create, db_multi_create, db_remove, db_update
+from ..core.cud import (
+    ModelType,
+    db_create,
+    db_create_or_update,
+    db_multi_create,
+    db_remove,
+    db_update,
+)
 from ..core.query import sql_filter, uniform_regexp_string
 
 # from .mixin.subject import CUDSubjectMixin
@@ -142,6 +149,9 @@ class CRUDBase(
 
     def raw_remove(self, db: Session, *, id: int) -> ModelType:
         return db_remove(db, id=id, model=self.model)
+
+    def raw_create_or_update(self, db: Session, *, obj_in: D) -> ModelType:
+        return db_create_or_update(db, obj_in=obj_in, model=self.model)
 
     # TODO 确认before 只负责补全 obj_in(包括额外操作生成id之类), after 只负责side effect
     def update(self, db: Session, *, obj_in: D) -> ModelType:
