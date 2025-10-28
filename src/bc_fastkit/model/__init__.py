@@ -1,14 +1,26 @@
-# type: ignore
 import hashlib
 import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Set
 
-from sqlalchemy import TEXT, VARCHAR, Column, DateTime, UniqueConstraint, text
+from sqlalchemy import (
+    BIGINT,
+    BINARY,
+    DATETIME,
+    DECIMAL,
+    TEXT,
+    VARCHAR,
+    Column,
+    Computed,
+    DateTime,
+    Index,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.mysql import INTEGER, TINYINT
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import Mapped, MappedColumn
 from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import JSON
 
@@ -19,6 +31,7 @@ from .column import (
     DefaultIdColumn,
     DefaultJsonColumn,
     DefaultTextColumn,
+    DefaultTimeColumn,
     DefaultTypeColumn,
     ExtraField,
     NotNullColumn,
@@ -34,7 +47,7 @@ def to_camel(string: str) -> str:
 class BaseModel:
     FAKE_DELETE_UK_SUFFIX = "_DELETED_"
 
-    id: Mapped[int] = NotNullColumn(INTEGER(unsigned=True), primary_key=True)
+    id: Mapped[int] = NotNullColumn(BIGINT, primary_key=True)
     create_time = NotNullColumn(
         DateTime,
         server_default=text(str(func.current_timestamp())),
@@ -57,14 +70,14 @@ class BaseModel:
         )
 
     @declared_attr
-    def __tablename__(cls) -> str:
+    def __tablename__(cls: Any) -> Any:
         if cls.__name__[-5:] != "Model":
             raise ValueError("model class name should end up with Model")
         name_list = re.findall(r"[A-Z][a-z\d]*", cls.__name__)[:-1]
         return "_".join(name_list).lower()
 
-    @declared_attr
-    def schema_name(cls) -> Mapped[str]:
+    @classproperty
+    def schema_name(cls: Any) -> str:
         return cls.__name__[:-5]
 
     @declared_attr
@@ -72,20 +85,22 @@ class BaseModel:
         names = set()
         attrs = dir(cls)
         for attr in attrs:
-            if "column_names" not in attr and isinstance(getattr(cls, attr), Column):
-                names.add(attr)
-        return names
+            if "column_names" not in attr:
+                col = getattr(cls, attr)
+                if isinstance(col, (Column, MappedColumn)):
+                    names.add(attr)
+        return names  # type: ignore
 
-    @declared_attr
-    def createalbe_column_names(cls) -> Mapped[Set[str]]:
+    @classproperty
+    def creatable_column_names(cls) -> Set[str]:
         return cls.column_names - {"id", "create_time", "update_time"}
 
-    @declared_attr
-    def immutable_column_names(cls) -> Mapped[Set[str]]:
+    @classproperty
+    def immutable_column_names(cls) -> Set[str]:
         return {"id", "cno", "create_time", "update_time"}
 
-    @declared_attr
-    def mutable_column_names(cls) -> Mapped[Set[str]]:
+    @classproperty
+    def mutable_column_names(cls) -> Set[str]:
         return cls.column_names - cls.immutable_column_names
 
     def __str__(self) -> str:
@@ -96,11 +111,11 @@ class BaseModel:
             f"{self.__class__.__name__}:(id:{self.id};cno:{getattr(self, 'cno', '')})"
         )
 
-    @declared_attr
+    @classproperty
     def is_real_delete(cls):
         return True
 
-    @declared_attr
+    @classproperty
     def is_fake_delete(cls):
         return hasattr(cls, "is_deleted")
 
@@ -155,7 +170,7 @@ class BaseModel:
     @classmethod
     def from_dict(cls, obj_in: D):
         return cls(
-            **{k: cls.transfer_column_value(k, obj_in.get(k)) for k in cls.column_names}
+            **{k: cls.transfer_column_value(k, obj_in.get(k)) for k in cls.column_names}  # type: ignore
         )
 
     @property
@@ -201,4 +216,12 @@ __all__ = [
     "ExtraField",
     "get_column_python_type",
     "UniqueConstraint",
+    "Computed",
+    "BINARY",
+    "declared_attr",
+    "classproperty",
+    "DECIMAL",
+    "DefaultTimeColumn",
+    "DATETIME",
+    "Index",
 ]

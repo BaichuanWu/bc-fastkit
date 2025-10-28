@@ -82,7 +82,7 @@ class CRUDBase(
         skip=0,
         limit=9999,
         **kwargs,
-    ) -> Tuple[ModelType, int]:
+    ) -> Tuple[List[ModelType], int]:
         query = self.query(db, q, typ)
         data = (
             query.order_by(*(order_by or self.get_query_order(typ, q)))
@@ -149,6 +149,10 @@ class CRUDBase(
 
     def raw_remove(self, db: Session, *, id: int) -> ModelType:
         return db_remove(db, id=id, model=self.model)
+
+    def create_on_duplicate_update(self, db: Session, *, obj_in: D) -> ModelType:
+        obj_in = self.before_create(db, obj_in=obj_in)
+        return self.raw_create_or_update(db, obj_in=obj_in)
 
     def raw_create_or_update(self, db: Session, *, obj_in: D) -> ModelType:
         return db_create_or_update(db, obj_in=obj_in, model=self.model)

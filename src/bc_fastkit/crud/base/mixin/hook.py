@@ -11,6 +11,12 @@ class CRUDHookMixin(Generic[ModelType]):
     def complement_obj_in(self, db: Session, *, obj_in: D) -> D:
         if obj_in.get("cno"):
             obj_in["cno"] = obj_in["cno"].strip()
+        none_keys = []
+        for k, v in obj_in.items():
+            if v is None:
+                none_keys.append(k)
+        for k in none_keys:
+            obj_in.pop(k)
         return obj_in
 
     def before_create(self, db: Session, *, obj_in: D) -> D:

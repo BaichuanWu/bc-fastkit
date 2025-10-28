@@ -1,14 +1,17 @@
 import json
+from datetime import datetime
+from decimal import Decimal
 from functools import partial
-from typing import Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from pydantic import computed_field
-from sqlalchemy import TEXT, Column, text
+from sqlalchemy import DATETIME, TEXT, text
 from sqlalchemy.dialects.mysql import INTEGER, TINYINT
 from sqlalchemy.dialects.mysql.types import DECIMAL
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.sqltypes import JSON
 
-NotNullColumn = partial(Column, nullable=False)
+NotNullColumn: Callable[..., Mapped] = partial(mapped_column, nullable=False)
 
 
 def transfer2json_default(data):
@@ -22,8 +25,8 @@ def transfer2json_default(data):
     return text(f"({d})")
 
 
-def DefaultJsonColumn(server_default, **kwargs):
-    return Column(
+def DefaultJsonColumn(server_default, **kwargs) -> Mapped[dict]:
+    return mapped_column(
         JSON,
         nullable=False,
         server_default=transfer2json_default(server_default),
@@ -31,15 +34,26 @@ def DefaultJsonColumn(server_default, **kwargs):
     )
 
 
-DefaultIdColumn = partial(
-    Column, INTEGER(unsigned=True), index=True, nullable=False, server_default="0"
+DefaultIdColumn: Callable[..., Mapped[int]] = partial(
+    mapped_column,
+    INTEGER(unsigned=True),
+    index=True,
+    nullable=False,
+    server_default="0",
 )
 
-DefaultTypeColumn = partial(Column, TINYINT, nullable=False, server_default="0")
-DefaultTextColumn = partial(Column, TEXT, nullable=False, server_default="")
+DefaultTypeColumn: Callable[..., Mapped[int]] = partial(
+    mapped_column, TINYINT, nullable=False, server_default="0"
+)
+DefaultTextColumn: Callable[..., Mapped[str]] = partial(
+    mapped_column, TEXT, nullable=False, server_default=""
+)
 
-DefaultDecimalColumn = partial(
-    Column, DECIMAL(20, 8), nullable=False, server_default="'0.00000000'"
+DefaultDecimalColumn: Callable[..., Mapped[Decimal]] = partial(
+    mapped_column, DECIMAL(20, 8), nullable=False, server_default="'0.00000000'"
+)
+DefaultTimeColumn: Callable[..., Mapped[datetime]] = partial(
+    mapped_column, DATETIME, nullable=False, server_default="'1900-01-01 00:00:00'"
 )
 
 T = TypeVar("T")

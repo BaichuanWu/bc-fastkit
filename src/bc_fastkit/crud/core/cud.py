@@ -11,7 +11,7 @@ from .typing import ModelType
 def db_create(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType:
     try:
         db_obj = model(
-            **{k: v for k, v in obj_in.items() if k in model.createalbe_column_names}
+            **{k: v for k, v in obj_in.items() if k in model.creatable_column_names}
         )  # type: ignore
         db.add(db_obj)
         db.flush()
@@ -23,24 +23,18 @@ def db_create(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType:
 
 
 def db_create_or_update(db: Session, *, obj_in: D, model: Type[ModelType]):
-    if db.bind.dialect.name == "mysql":  # type: ignore
-        try:
-            db_obj = model(
-                **{
-                    k: v
-                    for k, v in obj_in.items()
-                    if k in model.createalbe_column_names
-                }
-            )
-            values = db_obj.to_dict()
-            stmt = dialect_insert(model).values(**values)
-            stmt = stmt.on_duplicate_key_update(**values)
-            db.execute(stmt)
-        except Exception as e:
-            db.rollback()
-            raise e
-    else:
-        db_create(db, obj_in=obj_in, model=model)
+    try:
+        values = {k: v for k, v in obj_in.items() if k in model.creatable_column_names}
+
+        update_values = {
+            k: v for k, v in obj_in.items() if k in model.mutable_column_names
+        }
+        stmt = dialect_insert(model).values(**values)  # type: ignore
+        stmt = stmt.on_duplicate_key_update(**update_values)
+        db.execute(stmt)
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def db_update(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType | None:
@@ -57,7 +51,7 @@ def db_update(db: Session, *, obj_in: D, model: Type[ModelType]) -> ModelType | 
 
 def db_multi_create(db: Session, *, obj_ins: List[D], model: Type[ModelType]):
     obj_in_datas = [
-        {k: v for k, v in obj_in.items() if k in model.createalbe_column_names}
+        {k: v for k, v in obj_in.items() if k in model.creatable_column_names}
         for obj_in in obj_ins
     ]
     try:
