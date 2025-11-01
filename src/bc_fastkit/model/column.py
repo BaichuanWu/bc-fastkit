@@ -5,8 +5,8 @@ from functools import partial
 from typing import Callable, Generic, TypeVar
 
 from pydantic import computed_field
-from sqlalchemy import DATETIME, TEXT, text
-from sqlalchemy.dialects.mysql import INTEGER, TINYINT
+from sqlalchemy import BIGINT, DATETIME, TEXT, text
+from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.dialects.mysql.types import DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.sqltypes import JSON
@@ -36,7 +36,7 @@ def DefaultJsonColumn(server_default, **kwargs) -> Mapped[dict]:
 
 DefaultIdColumn: Callable[..., Mapped[int]] = partial(
     mapped_column,
-    INTEGER(unsigned=True),
+    BIGINT,
     index=True,
     nullable=False,
     server_default="0",
@@ -50,7 +50,7 @@ DefaultTextColumn: Callable[..., Mapped[str]] = partial(
 )
 
 DefaultDecimalColumn: Callable[..., Mapped[Decimal]] = partial(
-    mapped_column, DECIMAL(20, 8), nullable=False, server_default="'0.00000000'"
+    mapped_column, DECIMAL(20, 8), nullable=False, server_default="0.00000000"
 )
 DefaultTimeColumn: Callable[..., Mapped[datetime]] = partial(
     mapped_column, DATETIME, nullable=False, server_default="'1900-01-01 00:00:00'"
@@ -91,3 +91,8 @@ class ExtraField(Generic[T]):
 
     def __set__(self, instance, value: T):
         setattr(instance, self.private_name, value)
+
+
+"""
+<ts_op/>(ts_delta(<data_field/>, <days1>), <days2>) / (1 + ts_std_dev(<data_field/>, ));
+"""
