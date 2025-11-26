@@ -3,7 +3,33 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
 
-from .typing import ModelType
+from .typing import BaseModel, ModelType
+
+
+def model_filter(q: Dict[str, Any], model: BaseModel) -> bool:
+    for k, v in q.items():
+        if v is None:
+            return False
+        if k.endswith("_between"):
+            return v[0] <= getattr(model, k[: -len("_between")]) <= v[1]
+        elif k.endswith("_le"):
+            return getattr(model, k[: -len("_le")]) <= v
+        elif k.endswith("_ge"):
+            return getattr(model, k[: -len("_ge")]) >= v
+        elif k.endswith("_lt"):
+            return getattr(model, k[: -len("_lt")]) < v
+        elif k.endswith("_gt"):
+            return getattr(model, k[: -len("_gt")]) > v
+        elif k.endswith("_neq"):
+            if isinstance(v, list):
+                return getattr(model, k[: -len("_neq")]) not in v
+            else:
+                return getattr(model, k[: -len("_neq")]) != v
+        elif isinstance(v, list):
+            return getattr(model, k) in v
+        else:
+            return getattr(model, k) == v
+    return True
 
 
 # TODO 扩充 q 比如支持 or 查询
