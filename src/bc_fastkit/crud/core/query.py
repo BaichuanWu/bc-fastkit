@@ -11,24 +11,33 @@ def model_filter(q: Dict[str, Any], model: BaseModel) -> bool:
         if v is None:
             return False
         if k.endswith("_between"):
-            return v[0] <= getattr(model, k[: -len("_between")]) <= v[1]
+            if not v[0] <= getattr(model, k[: -len("_between")]) <= v[1]:
+                return False
         elif k.endswith("_le"):
-            return getattr(model, k[: -len("_le")]) <= v
+            if not getattr(model, k[: -len("_le")]) <= v:
+                return False
         elif k.endswith("_ge"):
-            return getattr(model, k[: -len("_ge")]) >= v
+            if not getattr(model, k[: -len("_ge")]) >= v:
+                return False
         elif k.endswith("_lt"):
-            return getattr(model, k[: -len("_lt")]) < v
+            if not getattr(model, k[: -len("_lt")]) < v:
+                return False
         elif k.endswith("_gt"):
-            return getattr(model, k[: -len("_gt")]) > v
+            if not getattr(model, k[: -len("_gt")]) > v:
+                return False
         elif k.endswith("_neq"):
             if isinstance(v, list):
-                return getattr(model, k[: -len("_neq")]) not in v
+                if not getattr(model, k[: -len("_neq")]) not in v:
+                    return False
             else:
-                return getattr(model, k[: -len("_neq")]) != v
+                if not getattr(model, k[: -len("_neq")]) != v:
+                    return False
         elif isinstance(v, list):
-            return getattr(model, k) in v
+            if getattr(model, k) not in v:
+                return False
         else:
-            return getattr(model, k) == v
+            if not getattr(model, k) == v:
+                return False
     return True
 
 
