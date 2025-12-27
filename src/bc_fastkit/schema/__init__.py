@@ -129,6 +129,8 @@ def create_schema_by_model(
             fields[attr] = (Optional[python_type], None)
     if with_property:
         for attr in dir(db_model):
+            if attr in (exclude or []):
+                continue
             prop = getattr(db_model, attr)
             if isinstance(prop, property):
                 annotations = prop.fget.__annotations__
