@@ -1,7 +1,7 @@
 # type: ignore
 from datetime import date
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type
 
 from sqlalchemy.orm import Query, Session
 
@@ -104,6 +104,41 @@ class CRUDBase(
             .all()
         )
         return self.complete_query_result(db=db, data=data, typ=typ)
+
+    def search_iter(
+        self, db: Session, q: D, batch_size: int = 500, typ=QUERY_TYPE_SIMPLE
+    ) -> Generator[ModelType, None, None]:
+        """
+        基于 ID 游标的分页迭代器，每次返回 batch_size 个对象。
+        适用于处理大数据量，避免一次性加载导致的内存或 Token 溢出。
+        """
+        last_id = 0  # 假设 ID 是自增整数，从 0 开始
+
+        while True:
+            # 1. 在原始查询基础上增加 ID 过滤和排序
+            query = self.query(db, q, typ)
+            data = (
+                query.filter(self.model.id > last_id)  # 游标核心：只查比上次 ID 大的
+                .order_by(self.model.id.asc())  # 强制 ID 升序
+                .limit(batch_size)  # 限制每批大小
+                .all()
+            )
+
+            if not data:
+                break
+
+            # 2. 补全数据（如关联查询加载等）
+            completed_data = self.complete_query_result(db=db, data=data, typ=typ)
+
+            for item in completed_data:
+                yield item
+
+            # 3. 更新游标，为下一组查询做准备
+            last_id = data[-1].id
+
+            # 如果最后一批不足 batch_size，说明已经查完
+            if len(data) < batch_size:
+                break
 
     def search_one(
         self, db: Session, q: D, order_by: List[Any] = None, typ=QUERY_TYPE_SIMPLE
