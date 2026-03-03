@@ -4,6 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Set
 
+import pandas as pd
 from sqlalchemy import (
     BIGINT,
     BINARY,
@@ -33,7 +34,6 @@ from .column import (
     DefaultTextColumn,
     DefaultTimeColumn,
     DefaultTypeColumn,
-    ExtraField,
     NotNullColumn,
 )
 
@@ -158,6 +158,20 @@ class BaseModel:
 
     def to_dict(self):
         return {c: getattr(self, c) for c in self.column_names}
+
+    @classmethod
+    def to_md(
+        cls,
+        objs: List["BaseModel"],
+        exclude: List[str] = None,
+        include: List[str] = None,
+    ) -> str:
+        columns = cls.column_names if not include else set(include)
+        if exclude:
+            columns -= set(exclude)
+        df = pd.DataFrame([obj.to_dict() for obj in objs])
+        df = df[list(columns)]
+        return df.to_markdown(index=False, tablefmt="github")
 
     def copy(self, other=None):
         return self.__class__(

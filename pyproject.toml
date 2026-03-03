@@ -1,6 +1,6 @@
 [project]
 name = "bc-fastkit"
-version = "0.1.4"
+version = "0.1.5"
 description = ""
 authors = [
     {name = "alian",email = "salivawbc@gmail.com"}
@@ -8,11 +8,12 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi (>=0.117.1,<0.118.0)",
-    "sqlalchemy[asyncio] (>=2.0.43,<3.0.0)",
-    "aiomysql (>=0.2.0,<0.3.0)",
-    "pydantic-settings (>=2.11.0,<3.0.0)",
-    "humps (>=0.2.2,<0.3.0)",
+    "fastapi>=0.117.1",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "aiomysql>=0.2.0",
+    "pydantic-settings>=2.11.0",
+    "humps>=0.2.2",
+    "pandas>=3.0.1",
 ]
 
 [tool.poetry]
