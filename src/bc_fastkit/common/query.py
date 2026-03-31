@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import List, Optional
 
-from .uitls import deep_hump2underline, deep_underline2hump
+from .uitls import deep_hump2underline, deep_underline2hump, hump2underline
 
 QUERY_TYPE_SIMPLE = 0
 QUERY_TYPE_OVERALL = 1
@@ -18,8 +18,8 @@ class CommonQueryParams:
         self,
         q: Optional[str] = None,
         skip: int = 0,
-        limit: int = 999999,
-        order_by: Optional[List[str]] = None,
+        limit: int = 20,
+        orderBy: Optional[str] = None,
         typ: int = QUERY_TYPE_SIMPLE,
     ):
         self.q = (
@@ -37,9 +37,25 @@ class CommonQueryParams:
         )
         self.skip = skip
         self.limit = limit
-        self.order_by = order_by
+        self.order_by = self._parse_order_by(orderBy)
         self.typ = typ
         self.update_time = datetime.now()
+
+    @staticmethod
+    def _parse_order_by(orderBy: Optional[str]) -> Optional[List[str]]:
+        """解析前端传入的 orderBy 逗号分隔字符串, 如 '-sharpe,fitness', 字段名驼峰转蛇形"""
+        if not orderBy:
+            return None
+        result = []
+        for item in orderBy.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if item.startswith("-") or item.startswith("+"):
+                result.append(item[0] + hump2underline(item[1:]))
+            else:
+                result.append(hump2underline(item))
+        return result or None
 
     @property
     def query_typ(self):

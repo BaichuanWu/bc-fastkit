@@ -4,8 +4,15 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Container, Dict, List, Optional, Tuple, Type, Union
 
+import pandas as pd
 from humps import camel
-from pydantic import BaseModel, ConfigDict, PlainSerializer, create_model
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    PlainSerializer,
+    create_model,
+    field_serializer,
+)
 
 from ..common.typing import DATE_FORMAT, DATETIME_FORMAT
 from ..model import get_column_python_type
@@ -35,12 +42,16 @@ class BaseSchema(BaseModel):
     model_config = ConfigDict(
         alias_generator=camel.case,
         populate_by_name=True,
-        json_encoders={
-            datetime: datetime_parser,
-            date: lambda v: v.strftime(DATE_FORMAT),
-        },
         from_attributes=True,
     )
+
+    @field_serializer("*", when_used=USED_TYPE_JSON, check_fields=False)
+    def serialize_common_types(self, value: Any):
+        if isinstance(value, datetime):
+            return datetime_parser(value)
+        if isinstance(value, date):
+            return value.strftime(DATE_FORMAT)
+        return value
 
 
 class FileSchema(BaseSchema):
@@ -137,6 +148,8 @@ def create_schema_by_model(
                 r_attr = "return"
                 if r_attr not in annotations:
                     raise ValueError(f"未声明的返回类型:{db_model}->{attr}")
+                if annotations[r_attr] is pd.DataFrame:
+                    annotations[r_attr] = List[Any]
                 fields[attr] = (Optional[annotations[r_attr]], None)
     for k, v in _fields.items():
         if not isinstance(v, Tuple):

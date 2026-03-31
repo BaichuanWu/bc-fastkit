@@ -3,8 +3,9 @@ from typing import List, Optional, Type
 
 from fastapi import APIRouter, HTTPException
 from fastapi.routing import APIRoute
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..crud import CRUDBase
+from ..crud import AsyncCRUDBase, CRUDBase
 from ..schema import BaseSchema, CRUSchema
 from .base import CRUDRequestHandler
 
@@ -18,9 +19,15 @@ def commit_session(f):
         db = kargs.get("db")
         if db:
             try:
-                db.commit()
+                if isinstance(db, AsyncSession):
+                    await db.commit()
+                else:
+                    db.commit()
             except Exception as e:
-                db.rollback()
+                if isinstance(db, AsyncSession):
+                    await db.rollback()
+                else:
+                    db.rollback()
                 raise HTTPException(status_code=400, detail=e.args[0])
         return response
 
@@ -46,7 +53,7 @@ class CRUDRouter(APIRouter):
         self,
         path: str,
         *,
-        handler: CRUDBase,
+        handler: CRUDBase | AsyncCRUDBase,
         schema: CRUSchema,
         session_dep,
         methods: Optional[List[str]] = None,

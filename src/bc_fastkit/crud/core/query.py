@@ -10,38 +10,50 @@ def model_filter(q: Dict[str, Any], model: BaseModel) -> bool:
     for k, v in q.items():
         if v is None:
             return False
-        if k.endswith("_between"):
-            if not v[0] <= getattr(model, k[: -len("_between")]) <= v[1]:
-                return False
-        elif k.endswith("_le"):
-            if not getattr(model, k[: -len("_le")]) <= v:
-                return False
-        elif k.endswith("_ge"):
-            if not getattr(model, k[: -len("_ge")]) >= v:
-                return False
-        elif k.endswith("_lt"):
-            if not getattr(model, k[: -len("_lt")]) < v:
-                return False
-        elif k.endswith("_gt"):
-            if not getattr(model, k[: -len("_gt")]) > v:
-                return False
-        elif k.endswith("_neq"):
-            if isinstance(v, list):
-                if not getattr(model, k[: -len("_neq")]) not in v:
-                    return False
-            else:
-                if not getattr(model, k[: -len("_neq")]) != v:
-                    return False
-        elif isinstance(v, list):
-            if getattr(model, k) not in v:
-                return False
+
+        val = getattr(model, k, None)
+
+        if isinstance(v, dict):
+            for op, op_val in v.items():
+                if op == "between":
+                    if not (op_val[0] <= val <= op_val[1]):
+                        return False
+                elif op == "le":
+                    if not (val <= op_val):
+                        return False
+                elif op == "ge":
+                    if not (val >= op_val):
+                        return False
+                elif op == "lt":
+                    if not (val < op_val):
+                        return False
+                elif op == "gt":
+                    if not (val > op_val):
+                        return False
+                elif op == "neq":
+                    if isinstance(op_val, list):
+                        if val in op_val:
+                            return False
+                    else:
+                        if val == op_val:
+                            return False
+                elif op == "in":
+                    if val not in op_val:
+                        return False
+                elif op == "not_in":
+                    if val in op_val:
+                        return False
+                elif op == "eq":
+                    if val != op_val:
+                        return False
+                # like/regexp are harder to eval in pure python reliably; skipped for model_filter
         else:
-            if not getattr(model, k) == v:
+            if val != v:
                 return False
+
     return True
 
 
-# TODO 扩充 q 比如支持 or 查询
 def sql_filter(
     q: Dict[str, Any],
     query: Query,
@@ -52,71 +64,44 @@ def sql_filter(
     for k, v in q.items():
         if v is None:
             continue
-        is_between = False
-        is_neq = False
-        is_le = False
-        is_ge = False
-        is_lt = False
-        is_gt = False
-        is_regexp = False
-        is_complex_regexp = False
-        is_like = False
-        if k.endswith("_between"):
-            is_between = True
-            k = k[: -len("_between")]
-        elif k.endswith("_neq"):
-            is_neq = True
-            k = k[: -len("_neq")]
-        elif k.endswith("_le"):
-            is_le = True
-            k = k[: -len("_le")]
-        elif k.endswith("_ge"):
-            is_ge = True
-            k = k[: -len("_ge")]
-        elif k.endswith("_lt"):
-            is_lt = True
-            k = k[: -len("_lt")]
-        elif k.endswith("_gt"):
-            is_gt = True
-            k = k[: -len("_gt")]
-        elif k.endswith("_regexp"):
-            is_regexp = True
-            k = k[: -len("_regexp")]
-        elif k.endswith("_complexregexp"):
-            is_regexp = True
-            is_complex_regexp = True
-            k = k[: -len("_complexregexp")]
-        elif k.endswith("_like"):
-            is_like = True
-            k = k[: -len("_like")]
+
         if k in model.column_names:
-            if isinstance(v, list):
-                if is_between:
-                    query = query.filter(getattr(model, k).between(*v))
-                elif is_neq:
-                    query = query.filter(getattr(model, k).not_in(v))
-                else:
-                    query = query.filter(getattr(model, k).in_(v))
+            column = getattr(model, k)
+            if isinstance(v, dict):
+                for op, op_val in v.items():
+                    if op == "between":
+                        query = query.filter(column.between(*op_val))
+                    elif op == "le":
+                        query = query.filter(column <= op_val)
+                    elif op == "ge":
+                        query = query.filter(column >= op_val)
+                    elif op == "lt":
+                        query = query.filter(column < op_val)
+                    elif op == "gt":
+                        query = query.filter(column > op_val)
+                    elif op == "neq":
+                        query = query.filter(column != op_val)
+                    elif op == "in":
+                        query = query.filter(column.in_(op_val))
+                    elif op == "not_in":
+                        query = query.filter(column.not_in(op_val))
+                    elif op == "regexp":
+                        query = query.filter(
+                            column.op("regexp")(uniform_regexp_string(op_val))
+                        )
+                    elif op == "complexregexp":
+                        query = query.filter(column.op("regexp")(op_val))
+                    elif op == "like":
+                        query = query.filter(column.like(op_val))
+                    elif op == "ilike":
+                        query = query.filter(column.ilike(op_val))
+                    elif op == "eq":
+                        query = query.filter(column == op_val)
             else:
                 if isinstance(v, str):
                     v = v.strip()
-                if is_neq:
-                    query = query.filter(getattr(model, k) != v)
-                elif is_le:
-                    query = query.filter(getattr(model, k) <= v)
-                elif is_ge:
-                    query = query.filter(getattr(model, k) >= v)
-                elif is_lt:
-                    query = query.filter(getattr(model, k) < v)
-                elif is_gt:
-                    query = query.filter(getattr(model, k) > v)
-                elif is_regexp:
-                    value = v if is_complex_regexp else uniform_regexp_string(v)
-                    query = query.filter(getattr(model, k).op("regexp")(value))
-                elif is_like:
-                    query = query.filter(getattr(model, k).like(v))
-                else:
-                    query = query.filter(getattr(model, k) == v)
+                query = query.filter(column == v)
+
     if model.is_fake_delete:
         delete_column = getattr(model, "is_deleted")
         if ignore_deleted:

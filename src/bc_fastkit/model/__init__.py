@@ -20,8 +20,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.mysql import INTEGER, TINYINT
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy.orm import Mapped, MappedColumn
+from sqlalchemy.orm import Mapped, MappedColumn, as_declarative, declared_attr
 from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import JSON
 
@@ -43,8 +42,51 @@ def to_camel(string: str) -> str:
     return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
 
+class MappingMixin:
+    """
+    Mixin to automatically provide name properties for models with state/typ mappings.
+    Example: If a model has STATE_NAME_MAPPING, it will get a .state_name property.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Map of field name to mapping dictionary name
+        mappable_fields = {
+            "state": "STATE_NAME_MAPPING",
+            "typ": "TYP_NAME_MAPPING",
+            "status": "STATUS_NAME_MAPPING",
+            "category": "CATEGORY_NAME_MAPPING",
+        }
+
+        for field, mapping_attr in mappable_fields.items():
+            if hasattr(cls, mapping_attr):
+                # Create the property dynamically
+                def make_property(f, m):
+                    @property
+                    def prop(self) -> str:
+                        val = getattr(self, f, None)
+                        mapping = getattr(cls, m, {})
+                        return mapping.get(
+                            val, f"未知({val})" if val is not None else "N/A"
+                        )
+
+                    return prop
+
+                setattr(cls, f"{field}_name", make_property(field, mapping_attr))
+
+    @classmethod
+    def get_mappings(cls) -> Dict[str, Dict[int, str]]:
+        """Extract all mapping dictionaries from the class."""
+        mappings = {}
+        for attr in dir(cls):
+            if attr.endswith("_NAME_MAPPING") and isinstance(getattr(cls, attr), dict):
+                mappings[attr] = getattr(cls, attr)
+        return mappings
+
+
 @as_declarative()
-class BaseModel:
+class BaseModel(MappingMixin):
     FAKE_DELETE_UK_SUFFIX = "_DELETED_"
 
     id: Mapped[int] = NotNullColumn(BIGINT, primary_key=True)
