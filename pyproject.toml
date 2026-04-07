@@ -1,6 +1,6 @@
 [project]
 name = "bc-fastkit"
-version = "0.1.6"
+version = "0.1.7"
 description = ""
 authors = [
     {name = "alian",email = "salivawbc@gmail.com"}
