@@ -2,7 +2,7 @@ import hashlib
 import re
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Sequence, Set, cast
 
 import pandas as pd
 from sqlalchemy import (
@@ -205,10 +205,12 @@ class BaseModel(MappingMixin):
     def to_md(
         cls,
         objs: List["BaseModel"],
-        exclude: List[str] = None,
-        include: List[str] = None,
+        exclude: Optional[Sequence[str]] = None,
+        include: Optional[Sequence[str]] = None,
     ) -> str:
-        columns = cls.column_names if not include else set(include)
+        columns: Set[str] = (
+            set(include) if include else set(cast(Set[str], cls.column_names))
+        )
         if exclude:
             columns -= set(exclude)
         df = pd.DataFrame([obj.to_dict() for obj in objs])
@@ -239,12 +241,12 @@ def get_column_python_type(column: Column) -> Optional[type]:
     if column.name == "files":
         pass
     if isinstance(column.type, JSON):
-        if hasattr(column.server_default, "arg"):
-            arg = column.server_default.arg  # type: ignore
-            # 通过 server_default 推断 JSON 字段的具体类型
-        if arg.text.startswith("(json_array"):
+        arg = getattr(column.server_default, "arg", None)
+        default_text = getattr(arg, "text", "")
+        # 通过 server_default 推断 JSON 字段的具体类型
+        if default_text.startswith("(json_array"):
             python_type = List
-        elif arg.text.startswith("(json_object"):
+        elif default_text.startswith("(json_object"):
             python_type = Dict[str, Any]
         else:
             python_type = List | Dict[str, Any]  # type: ignore
@@ -269,7 +271,6 @@ __all__ = [
     "TEXT",
     "INTEGER",
     "TINYINT",
-    "ExtraField",
     "get_column_python_type",
     "UniqueConstraint",
     "Computed",
