@@ -142,7 +142,7 @@ class AsyncCRUDBase(
 
     async def search_iter(
         self, db: AsyncSession, q: D, batch_size: int = 500, typ=QUERY_TYPE_SIMPLE
-    ) -> AsyncGenerator[List[ModelType], None]:
+    ) -> AsyncGenerator[ModelType, None]:
         last_id = 0
         while True:
             stmt = await self.query(db, q, typ)
