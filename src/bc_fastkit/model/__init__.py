@@ -51,29 +51,21 @@ class MappingMixin:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        # Map of field name to mapping dictionary name
-        mappable_fields = {
-            "state": "STATE_NAME_MAPPING",
-            "typ": "TYP_NAME_MAPPING",
-            "status": "STATUS_NAME_MAPPING",
-            "category": "CATEGORY_NAME_MAPPING",
-        }
+        for mapping_attr in cls.get_mappings():
+            field = mapping_attr[: -len("_NAME_MAPPING")].lower()
+            setattr(
+                cls, f"{field}_name", cls._make_mapping_property(field, mapping_attr)
+            )
 
-        for field, mapping_attr in mappable_fields.items():
-            if hasattr(cls, mapping_attr):
-                # Create the property dynamically
-                def make_property(f, m):
-                    @property
-                    def prop(self) -> str:
-                        val = getattr(self, f, None)
-                        mapping = getattr(cls, m, {})
-                        return mapping.get(
-                            val, f"未知({val})" if val is not None else "N/A"
-                        )
+    @classmethod
+    def _make_mapping_property(cls, field: str, mapping_attr: str):
+        @property
+        def prop(self) -> str:
+            val = getattr(self, field, None)
+            mapping = getattr(cls, mapping_attr, {})
+            return mapping.get(val, f"未知({val})" if val is not None else "N/A")
 
-                    return prop
-
-                setattr(cls, f"{field}_name", make_property(field, mapping_attr))
+        return prop
 
     @classmethod
     def get_mappings(cls) -> Dict[str, Dict[int, str]]:
